@@ -42,6 +42,10 @@ class MicroPlant:
         slot = self.identifier(mujoco.mjtObj.mjOBJ_SITE, f"slot_{vehicle}")
         self.origin = self.data.site_xpos[slot].copy()
         self.initial_quaternion = self.qpos[3:7].copy()
+        bottom=mujoco.mj_name2id(self.model,mujoco.mjtObj.mjOBJ_SITE,f'{self.name}_bottom')
+        self.rest_height_m=(float(-self.model.site_pos[bottom,2]) if bottom>=0 else .020)
+        if not np.isfinite(self.rest_height_m) or not 0<self.rest_height_m<.1:
+            raise ValueError('Invalid model bottom/COM height')
         self.inactive = []
         for n in range(1, 5):
             if n == vehicle:

@@ -9,6 +9,10 @@ ArduPilot 默認值保留作歷史重現；不要將其與新日常入口混用�
 本輪完成標準見 [研發範圍](PX4_MIGRATION_SCOPE.md)。仿真能完成整段
 鏈路，不代表機體已定型、可靠性合格或可以直接部署至真機。
 
+2026-10-13的[Ver2模型與首次PX4試跑](PX4_VER2_TRIAL.md)另有入口：
+`python -m rm27.autopilot.px4.vehicle_probe`。新CAD模型的短程起降往返
+已通過；本頁原完整任務仍使用舊代理配置，其成功證據不轉移到Ver2。
+
 ## 依賴與版本
 
 ```bash

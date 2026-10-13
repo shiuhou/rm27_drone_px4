@@ -53,6 +53,30 @@ def test_physical_motor_order_and_isolation(px4_plant):
     for bad in [[-.01,0,0,0],[float('nan'),0,0,0],[1,2,3]]:
         with pytest.raises(ValueError):p.step_normalized(bad)
 
+
+def test_allocator_uses_compiled_sites_instead_of_old_30mm_geometry(px4_plant):
+    from rm27.autopilot.px4.runtime import allocator_parameters
+    p=px4_plant
+    for i,actuator in enumerate(p.motors):
+        site=p.model.actuator_trnid[actuator,0]
+        p.model.site_pos[site,:2]*=.0275/.03
+    values=allocator_parameters(p)
+    for i,actuator in enumerate(p.motors):
+        site=p.model.actuator_trnid[actuator,0]
+        xyz=np.array([values[f'CA_ROTOR{i}_P{axis}'] for axis in 'XYZ'])
+        np.testing.assert_allclose(xyz,p.model.site_pos[site]*[1,-1,-1])
+        simulated_frd=np.array([p.model.site_pos[site,1],p.model.site_pos[site,0],-p.model.actuator_gear[actuator,5]])
+        allocated_frd=np.cross(xyz,[0,0,-1])-values[f'CA_ROTOR{i}_KM']*np.array([0,0,-1])
+        np.testing.assert_allclose(allocated_frd,simulated_frd)
+        assert abs(values[f'CA_ROTOR{i}_PX'])==pytest.approx(.0275)
+
+
+def test_allocator_rejects_non_unit_force_wrench(px4_plant):
+    from rm27.autopilot.px4.runtime import allocator_parameters
+    px4_plant.model.actuator_gear[px4_plant.motors[0],2]=2
+    with pytest.raises(ValueError,match='unit'):
+        allocator_parameters(px4_plant)
+
 def test_sensor_frame_and_message(px4_plant):
     plant=px4_plant
     sensor=SensorProducer(plant)

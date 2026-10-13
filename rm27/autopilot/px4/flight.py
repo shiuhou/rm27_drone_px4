@@ -30,12 +30,13 @@ PROTOTYPE_MISSION_POLICY = FlightPolicy(True, True, True)
 
 class LandingMonitor:
     """Allow transient contact chatter, retaining the original slot/rest gates."""
-    def __init__(self, contact_grace_s=.5):
+    def __init__(self, contact_grace_s=.5, *, rest_height_m=.02):
         self.contact_grace_s=contact_grace_s
+        self.rest_height_m=rest_height_m
         self.last_contact=None
 
     def check(self, timestamp, local, contacts):
-        if np.linalg.norm(local[:2])>.007 or abs(local[2]-.02)>.005:
+        if np.linalg.norm(local[:2])>.007 or abs(local[2]-self.rest_height_m)>.005:
             raise RuntimeError('Landing left assigned slot')
         if contacts:
             self.last_contact=timestamp
@@ -54,13 +55,15 @@ def confirm_auto_disarm(telemetry, timestamp, land_observed):
 
 def independent_resting_score(plant, final_local, *, check_motion=False):
     """JSON-safe physical result; this is never supplied to the mission actor."""
-    passed=bool(plant.contacts() and np.linalg.norm(final_local[:2])<=.007 and abs(final_local[2]-.02)<=.005)
+    resting_height=getattr(plant,'rest_height_m',.020)
+    passed=bool(plant.contacts() and np.linalg.norm(final_local[:2])<=.007 and abs(final_local[2]-resting_height)<=.005)
     speed=float(np.linalg.norm(plant.qvel[:3]))
     force=float(np.max(np.abs(plant.data.actuator_force[plant.motors])))
     if check_motion:
         passed=bool(passed and speed<=.01 and force<1e-5)
     return dict(passed=passed,source='MuJoCo truth, scoring only',
-        horizontal_error_m=float(np.linalg.norm(final_local[:2])),height_error_m=float(abs(final_local[2]-.02)),
+        horizontal_error_m=float(np.linalg.norm(final_local[:2])),height_error_m=float(abs(final_local[2]-resting_height)),
+        model_rest_height_m=resting_height,
         physical_speed_m_s=speed,maximum_actual_motor_force_N=force)
 
 
@@ -69,6 +72,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
     if not math.isfinite(speedup) or speedup<=0:raise ValueError('speedup must be positive')
     scene=Path(scene).resolve();output=Path(output).resolve();output.mkdir(parents=True,exist_ok=False)
     plant=MicroPlant(scene,dynamics_profile=dynamics)
+    rest_height=plant.rest_height_m
     if route:
         # The current aircraft contact replay converges at 1 ms versus .5 ms;
         # 2 ms versus 1 ms misses the 10% peak-force criterion. Dock-only
@@ -83,6 +87,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
     elif profile=='combined':summary['estimation_source']='synthetic ODOMETRY plus numerical flow/range/compass and IMU'
     metadata={'scene':str(scene),'scene_sha256':hashlib.sha256(scene.read_bytes()).hexdigest(),'mass_kg':float(plant.model.body_mass[plant.body]),'origin_nwu':plant.origin.tolist(),'profile':profile,'dynamics_profile':str(dynamics),'runner_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     metadata['physics_timestep_s']=float(plant.model.opt.timestep)
+    metadata['model_rest_height_m']=rest_height
     source_root=Path(__file__).resolve().parents[3]
     metadata['git_commit']=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source_root,text=True).strip()
     difference=subprocess.check_output(['git','diff','--binary','HEAD'],cwd=source_root)
@@ -100,7 +105,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
         metadata['physical_fixture']=plant.physical_fixture_evidence
     (output/'metadata.json').write_text(json.dumps(metadata,indent=2))
     phase='INITIALIZE';phase_start=0.;stable_since=None;next_send=0.;next_action=10.;next_heartbeat=0.;next_params=0.
-    hover=[];physical_hover=[];landing=None;land_observed=False;land_requested=False;landing_commitment=None;land_monitor=LandingMonitor();max_tilt=max_force=max_penetration=0.;start=time.monotonic();viewer=None
+    hover=[];physical_hover=[];landing=None;land_observed=False;land_requested=False;landing_commitment=None;land_monitor=LandingMonitor(rest_height_m=rest_height);max_tilt=max_force=max_penetration=0.;start=time.monotonic();viewer=None
     physical_violations=[]
     if policy.causal_inputs:
         if not telemetry_guidance or not route:
@@ -256,7 +261,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
                 if t>(route.physics_deadline if route else 160):raise RuntimeError('Physics deadline')
                 if phase=='INITIALIZE':
                     if flow_bootstrap:bootstrap(0.)
-                    elif 'local_position' in tel: target([0,0,.02])
+                    elif 'local_position' in tel: target([0,0,rest_height])
                     verified=all(k in rt.parameters and math.isclose(rt.parameters[k],v,abs_tol=1e-5,rel_tol=1e-5) for k,v in rt.expected.items())
                     if t>50 and not verified:raise RuntimeError('Parameter mismatch: '+str({k:(v,rt.parameters.get(k)) for k,v in rt.expected.items() if k not in rt.parameters or not math.isclose(rt.parameters[k],v,abs_tol=1e-5,rel_tol=1e-5)}))
                     if verified and t>=next_action and 'local_position' in tel:
@@ -280,7 +285,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
                             flow_bootstrap=False;phase_start=t;next_send=0.;event('flow_navigation_handover',range_m=height)
                         elif t-phase_start>10:raise RuntimeError('No valid flow navigation after attitude takeoff')
                         continue
-                    target([0,0,min(.6,.02+.25*(t-phase_start))],z_limit=.25)
+                    target([0,0,min(.6,rest_height+.25*(t-phase_start))],z_limit=.25)
                     if abs(local[2]-.6)<.08 and speed<.08:
                         stable_since=t if stable_since is None else stable_since
                         if t-stable_since>=2:transition('HOVER')
@@ -410,7 +415,7 @@ def run(scene, output, instance=0, *, dynamics=None, view=False, speedup=None, r
                         not tel.get('armed') and settled and 0<=t-tel.get('landed_time',-100)<=.3 and
                         0<=t-tel.get('heartbeat_time',-100)<=.3 and np.max(np.abs(row['controls']))<1e-6)
                     if (tel.get('armed') or not settled or (not ground_confirmed and speed>.01) or
-                            resting_horizontal>.007 or abs(height-.02)>height_tolerance):
+                            resting_horizontal>.007 or abs(height-rest_height)>height_tolerance):
                         raise RuntimeError('Disarmed resting gate failed')
                     if ground_confirmed:
                         summary['ground_rest_confirmation']=dict(source='fresh PX4 landed/range/heartbeat and stopped actuator output',

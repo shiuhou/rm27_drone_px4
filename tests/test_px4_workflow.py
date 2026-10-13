@@ -21,6 +21,16 @@ def test_landed_numpy_physics_scores_serialize_and_reject_residual_motion():
     assert independent_resting_score(plant,position,check_motion=True)['passed'] is False
 
 
+def test_ver2_rest_is_scored_against_its_model_bottom():
+    from rm27.autopilot.px4.flight import independent_resting_score,LandingMonitor
+    plant=SimpleNamespace(contacts=lambda: ['bottom'], qvel=np.zeros(6),rest_height_m=.0225,
+        motors=np.arange(4),data=SimpleNamespace(actuator_force=np.zeros(4)))
+    position=np.array([0,0,.0225])
+    result=independent_resting_score(plant,position,check_motion=True)
+    assert result['passed'] is True and result['height_error_m']==0
+    LandingMonitor(rest_height_m=.0225).check(0,position,['bottom'])
+
+
 def test_nominal_flight_without_actual_ev_fusion_fails_workflow(tmp_path, monkeypatch):
     from rm27.experiments import image_conditions
     from rm27.telemetry import ulog

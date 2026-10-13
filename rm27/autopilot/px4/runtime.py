@@ -10,6 +10,7 @@ import socket
 import subprocess
 import time
 import struct
+import mujoco
 from collections import deque
 from pymavlink.dialects.v20 import common as mavlink
 from .build import DEFAULT_SOURCE, verify
@@ -19,6 +20,27 @@ class Writer:
     def __init__(self, sock, address=None): self.sock,self.address=sock,address
     def write(self, data):
         return self.sock.sendto(data,self.address) if self.address else self.sock.sendall(data)
+
+
+def allocator_parameters(plant):
+    """Use the compiled physical rotor order and FLU-to-FRD wrench convention."""
+    import numpy as np
+    result={}
+    for index,actuator in enumerate(plant.motors):
+        site=int(plant.model.actuator_trnid[actuator,0])
+        gear=np.asarray(plant.model.actuator_gear[actuator],float)
+        if (int(plant.model.actuator_trntype[actuator])!=int(mujoco.mjtTrn.mjTRN_SITE)
+                or plant.model.site_bodyid[site]!=plant.body
+                or not np.allclose(gear[:5],[0,0,1,0,0],atol=1e-12)):
+            raise ValueError('PX4 bridge requires body-mounted rotor sites and unit +Z force')
+        position=np.asarray(plant.model.site_pos[site],float)*[1,-1,-1]
+        if not np.isfinite(np.r_[position,gear]).all():
+            raise ValueError('Nonfinite rotor geometry')
+        for axis,value in zip('XYZ',position):
+            result[f'CA_ROTOR{index}_P{axis}']=float(value)
+        result[f'CA_ROTOR{index}_KM']=-float(gear[5])
+    return result
+
 
 class Runtime:
     def __init__(self, plant, output, instance=0, source=DEFAULT_SOURCE, profile='diagnostic'):
@@ -52,6 +74,7 @@ class Runtime:
         try:
             etc=self.output/'etc'; shutil.copytree(self.source/'build/px4_sitl_default/etc',etc,symlinks=False)
             params=json.loads((Path(__file__).resolve().parents[3]/'configs/px4'/f'{self.profile}.json').read_text())
+            params.update(allocator_parameters(self.plant))
             mass=float(self.plant.model.body_mass[self.plant.body])
             import numpy as np
             maximum=float(np.asarray(self.plant.maximum).max())
