@@ -12,6 +12,10 @@ micro-flight, contact recovery, rendered image inputs and native OpenVINS
 evaluation and complete image-guided missions. The revised R&D migration is complete in the independent worktree;
 [closeout evidence and limits](docs/PX4_MIGRATION_CLOSEOUT.md) and
 [supported PX4 workflow](docs/PX4_SIMULATION.md) describe the daily entry.
+
+[Green-center AXMODEL replay](docs/PX4_GREEN_REPLAY.md) uses the upstream C++
+green-center primitives and the supplied compiled model on recorded-state RGB
+images. This is an offline research entry; continuous detection is not qualified.
 Vision/VIO hardware research continues externally in `shiuhou/rm27_slam`.
 
 RoboMaster 2027 simulation and research workspace. The current priority is one

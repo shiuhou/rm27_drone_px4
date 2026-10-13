@@ -43,6 +43,9 @@ python -m rm27 px4-sim replay artifacts/px4-mission-new/flight --output artifact
 
 [完整建置／操作／日誌說明](docs/PX4_SIMULATION.md)；
 [研究覆蓋與模型替換邊界](docs/PX4_RESEARCH_COVERAGE.md)。
+
+[綠燈 AXMODEL 離線回放](docs/PX4_GREEN_REPLAY.md)提供作者 C++ 核心與實際模型的
+彩色影像回放入口；這一階段尚未接入飛控，連續模型辨識效果仍在研究。
 每次使用新目錄；查看實際`summary.json`，不要只看進程退出码。
 主工作區`rm27_drones`沒有自動套用變更。
 
