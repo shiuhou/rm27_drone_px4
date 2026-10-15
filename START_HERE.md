@@ -49,6 +49,12 @@ python -m rm27 px4-sim replay artifacts/px4-mission-new/flight --output artifact
 每次使用新目錄；查看實際`summary.json`，不要只看進程退出码。
 主工作區`rm27_drones`沒有自動套用變更。
 
+新版 Ver2 機體（來自主工作區的
+`rm_mjcf/rm27_drone_mjcf/`）已有獨立 PX4 短程試跑記錄：
+[PX4_VER2_TRIAL](docs/PX4_VER2_TRIAL.md)。它使用合成外部定位完成
+起飛、懸停、平移、返回、LAND 和停槳；這是模型／接口檢查，不能把
+舊代理的完整圖像任務結果直接套到 Ver2。
+
 四個停機位綠色區域已在獨立 PX4 仿真場景中改為 80 mm AprilTag，
 機腹中心增加專用下視相機。建立場景和運行當前視覺回庫開發鏈路的命令見
 [視覺 SITL 操作說明](rm27/perception/sitl/README.md)。下視相機實物估重

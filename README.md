@@ -16,6 +16,13 @@ evaluation and complete image-guided missions. The revised R&D migration is comp
 [Green-center AXMODEL replay](docs/PX4_GREEN_REPLAY.md) uses the upstream C++
 green-center primitives and the supplied compiled model on recorded-state RGB
 images. This is an offline research entry; continuous detection is not qualified.
+
+The current Ver2 aircraft is maintained in the separate runtime package
+`rm_mjcf/rm27_drone_mjcf/` from the main project. The PX4 worktree has a
+separate [Ver2 model and short SITL trial record](docs/PX4_VER2_TRIAL.md):
+150 g, approximately 114 × 114 × 45 mm, with allocator geometry read from
+the compiled model. That short synthetic-EV trial does not transfer the older
+full-mission evidence to Ver2.
 Vision/VIO hardware research continues externally in `shiuhou/rm27_slam`.
 
 RoboMaster 2027 simulation and research workspace. The current priority is one

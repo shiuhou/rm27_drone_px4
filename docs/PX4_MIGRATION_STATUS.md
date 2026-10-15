@@ -16,6 +16,14 @@ retains its existing simulation chain and PX4-facing contracts. That research
 does not block migration closeout; pull/integration waits until the user reports
 the upstream work ready. See the ownership section in the current criteria.
 
+The 2026-10-13 Ver2 trial is recorded separately in
+[PX4_VER2_TRIAL.md](PX4_VER2_TRIAL.md). It uses the current
+`rm_mjcf/rm27_drone_mjcf/` asset from the main project, reads allocator geometry
+from the compiled rotor sites, and adapts the resting-height scorer to the
+22.5 mm model bottom. One synthetic-EV short closed-loop SITL run passed through
+takeoff, hover, translation, return, LAND and auto-disarm; it does not qualify
+the full image/contact mission or real hardware.
+
 The user subsequently authorized resumed closeout. The supported `px4-sim`
 workflow rebuilt the scene and completed the whole nominal headless mission,
 with real EKF2 EV fusion, normal LAND/disarm and independent physical scoring.
