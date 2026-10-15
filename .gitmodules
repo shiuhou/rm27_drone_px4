@@ -14,7 +14,7 @@
 	branch = components/mujoco-uav-ardupilot
 [submodule "rm27/perception/vision/maixcam2_dart_vision"]
 	path = rm27/perception/vision/maixcam2_dart_vision
-	url = https://github.com/blademaster679/maixcam2_dart.git
+	url = https://github.com/blademaster679/maixcam2_dart_vision.git
 [submodule "rm27/simulation/field/rmuc2026_battlefield_mjcf"]
 	path = rm27/simulation/field/rmuc2026_battlefield_mjcf
 	url = https://github.com/CosmosMount/rmuc2026_battlefield_mjcf.git
