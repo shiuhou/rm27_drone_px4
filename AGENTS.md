@@ -116,3 +116,15 @@ local raw assets. Do not reset, clean, relocate or rewrite unrelated changes.
 Do not vendor large CAD, logs, generated meshes or virtual environments into
 Git unless the user explicitly changes that policy. Check nested repository
 status separately before claiming it is clean or unchanged.
+
+## Component adapter and common standard
+
+Apply `.agents/docs/engineering.md` for the shared engineering process. This
+repository is the independent PX4 component; the parent RM27 repository owns
+cross-component integration and must not be imported as an implementation
+shortcut. Keep PX4-specific requirements here: firmware and board identity,
+parameter and ULog provenance, SITL versus hardware classification, and the
+boundary that no firmware write, parameter change, arming or flight is allowed
+without explicit authorization. Use the existing migration and simulation
+documents as the component acceptance sources, and report headless, live-view,
+SITL and hardware results separately.
